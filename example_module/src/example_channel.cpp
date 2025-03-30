@@ -5,6 +5,7 @@
 #include <coreobjects/callable_info_factory.h>
 #include <opendaq/data_rule_factory.h>
 #include <coreobjects/unit_factory.h>
+#include <chrono>
 
 BEGIN_NAMESPACE_EXAMPLE_MODULE
 
