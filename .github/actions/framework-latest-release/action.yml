@@ -1,32 +1,45 @@
 name: Determine latest openDAQ framework artefact
 
 inputs:
+
+  opendaq-framework-release-version:
+    required: false
+    default: latest
+
   win32-force: 
     required: false
     default: false
 
 outputs:
+
   version:
     description: "Latest openDAQ release version"
     value: ${{ steps.determine-latest-package.outputs.version }}
+
   platform:
     description: "Detected platform"
     value: ${{ steps.determine-latest-package.outputs.platform }}
+
   packaging:
     description: "Package type (deb/exe)"
     value: ${{ steps.determine-latest-package.outputs.packaging }}
+
   artefact:
     description: "Artefact filename"
     value: ${{ steps.determine-latest-package.outputs.artefact }}
+
   uri:
     description: "Full URI to artefact"
     value: ${{ steps.determine-latest-package.outputs.uri }}
+
   scheme:
     description: "Scheme (s3)"
     value: ${{ steps.determine-latest-package.outputs.scheme }}
+
   authority:
     description: "Authority (bucket)"
     value: ${{ steps.determine-latest-package.outputs.authority }}
+
   path:
     description: "Path inside bucket"
     value: ${{ steps.determine-latest-package.outputs.path }}
@@ -40,13 +53,20 @@ runs:
       run: |
         set -e
 
-        version=$(gh api repos/openDAQ/openDAQ/releases/latest --jq '.tag_name')
-        if [[ -z "$version" || "$version" == "null" ]]; then
-          echo "::error::Failed to determine latest openDAQ release version"
-          exit 1
+        input_version="${{ inputs.opendaq-framework-release-version }}"
+
+        if [[ -z "$input_version" || "$input_version" == "latest" ]]; then
+          version=$(gh api repos/openDAQ/openDAQ/releases/latest --jq '.tag_name')
+          if [[ -z "$version" || "$version" == "null" ]]; then
+            echo "::error::Failed to determine latest openDAQ release version"
+            exit 1
+          fi
+
+          version=${version#v}
+        else
+          version="$input_version"
         fi
 
-        version=${version#v}
         platform=""
         packaging=""
 

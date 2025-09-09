@@ -1,10 +1,26 @@
 name: Build and Test simple device module with latest openDAQ release 
 
 on:
+  push:
+    branches:
+      - main
+
   pull_request:
     branches:
       - main
       - jira/*
+
+  workflow_dispatch:
+    inputs:
+
+      branch:
+        required: false
+        default: "main"
+
+      opendaq-framework-version:
+        required: false
+        type: string
+        default: latest
 
 env:
   GH_TOKEN: ${{ github.token }}
@@ -17,6 +33,7 @@ jobs:
         include:
           - os: ubuntu-latest
             generator: Ninja
+
           - os: windows-latest
             generator: "Visual Studio 17 2022"
 
@@ -25,10 +42,14 @@ jobs:
     steps:
       - name: Checkout simple device module repo
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.branch || github.event.client_payload.branch || github.ref }}
 
       - name: Determine openDAQ framework package
         id: opendaq-framework
         uses: ./.github/actions/framework-latest-release
+        with:
+          opendaq-framework-release-version: ${{ github.event.inputs.opendaq-framework-version || 'latest' }}
 
       - name: Download openDAQ framework
         uses: ./.github/actions/framework-download
@@ -46,7 +67,6 @@ jobs:
 
       - name: Configure simple device module with CMake
         run: cmake -B build/output -S . -G "${{ matrix.generator }}" -DEXAMPLE_MODULE_ENABLE_TESTS=ON -DCMAKE_BUILD_TYPE=Release
-
 
       - name: Build simple device module with CMake
         run: cmake --build build/output --config Release
