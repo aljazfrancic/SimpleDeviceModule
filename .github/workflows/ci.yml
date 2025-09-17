@@ -38,7 +38,7 @@ jobs:
             generator: "Visual Studio 17 2022"
 
     runs-on: ${{ matrix.os }}
-    
+
     steps:
       - name: Checkout simple device module repo
         uses: actions/checkout@v4

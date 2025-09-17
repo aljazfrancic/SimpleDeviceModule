@@ -1,0 +1,23 @@
+name: Download openDAQ artifact from GitHub
+description: "Download openDAQ artifact from GitHub workflow by run ID and artifact name"
+
+inputs:
+  opendaq-artifact-run-id:
+    required: true
+
+  opendaq-artifact-name:
+    required: true
+
+  destination-dir:
+    required: false
+    default: ${{ runner.temp }}
+
+runs:
+  using: composite
+  steps:
+  - name: Download openDAQ artifact
+    shell: bash
+    run: |
+      gh run download ${{ inputs.opendaq-artifact-run-id }} --repo openDAQ/openDAQ --pattern ${{ inputs.opendaq-artifact-name }} --dir ${{ inputs.destination-dir }}
+      echo ${{ inputs.destination-dir }}/${{ inputs.opendaq-artifact-name }}/
+      ls -la ${{ inputs.destination-dir }}/${{ inputs.opendaq-artifact-name }}/
