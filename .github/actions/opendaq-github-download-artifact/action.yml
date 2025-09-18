@@ -18,6 +18,13 @@ runs:
   - name: Download openDAQ artifact
     shell: bash
     run: |
-      gh run download ${{ inputs.opendaq-artifact-run-id }} --repo openDAQ/openDAQ --pattern ${{ inputs.opendaq-artifact-name }} --dir ${{ inputs.destination-dir }}
-      echo ${{ inputs.destination-dir }}/${{ inputs.opendaq-artifact-name }}/
-      ls -la ${{ inputs.destination-dir }}/${{ inputs.opendaq-artifact-name }}/
+      DEST=$(echo "${{ inputs.destination-dir }}" | sed 's|\\|/|g')
+      ARTIFACT_DIR="$DEST/${{ inputs.opendaq-artifact-name }}"
+
+      gh run download ${{ inputs.opendaq-artifact-run-id }} \
+        --repo openDAQ/openDAQ \
+        --pattern ${{ inputs.opendaq-artifact-name }} \
+        --dir "$DEST"
+
+      echo "$ARTIFACT_DIR/"
+      ls -la "$ARTIFACT_DIR/"
