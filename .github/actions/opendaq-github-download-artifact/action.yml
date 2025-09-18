@@ -18,12 +18,15 @@ runs:
   - name: Download openDAQ artifact
     shell: bash
     run: |
-      DEST=$(echo "${{ inputs.destination-dir }}" | sed 's|\\|/|g')
-      ARTIFACT_DIR="$DEST/${{ inputs.opendaq-artifact-name }}"
+      DEST="${{ inputs.destination-dir }}"
+      DEST=$(echo "$DEST" | sed 's|\\|/|g')
 
-      gh run download ${{ inputs.opendaq-artifact-run-id }} \
+      ARTIFACT_NAME="${{ inputs.opendaq-artifact-name }}"
+      ARTIFACT_DIR="$DEST/$ARTIFACT_NAME"
+
+      gh run download "${{ inputs.opendaq-artifact-run-id }}" \
         --repo openDAQ/openDAQ \
-        --pattern ${{ inputs.opendaq-artifact-name }} \
+        --pattern "$ARTIFACT_NAME" \
         --dir "$DEST"
 
       echo "$ARTIFACT_DIR/"
