@@ -33,9 +33,11 @@ jobs:
         include:
           - os: ubuntu-latest
             generator: Ninja
+            platform-alias: "ubuntu22.04-x86_64"
 
           - os: windows-latest
             generator: "Visual Studio 17 2022"
+            platform-alias: "win64"
 
     runs-on: ${{ matrix.os }}
 
@@ -51,19 +53,36 @@ jobs:
         with:
           opendaq-framework-release-version: ${{ github.event.inputs.opendaq-framework-version || 'latest' }}
 
-      - name: Download openDAQ framework
-        uses: ./.github/actions/framework-download
+      # - name: Download openDAQ framework
+      #   uses: ./.github/actions/framework-download
+      #   with:
+      #     src-opendaq-framework-dev: ${{ steps.opendaq-framework.outputs.uri }}
+      #     dst-opendaq-framework-dev: ${{ runner.temp }}/${{ steps.opendaq-framework.outputs.artefact }}
+      #     aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      #     aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      #     aws_region: ${{ secrets.AWS_REGION }}
+
+      - name: Compose framework filename
+        id: compose-framework-filename
+        uses: openDAQ/actions/framework-compose-filename@action-framework-compose-filename
         with:
-          src-opendaq-framework-dev: ${{ steps.opendaq-framework.outputs.uri }}
-          dst-opendaq-framework-dev: ${{ runner.temp }}/${{ steps.opendaq-framework.outputs.artefact }}
-          aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws_region: ${{ secrets.AWS_REGION }}
+          platform: ${{ matrix.platform-alias }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Download openDAQ framework
+        shell: bash
+        env:
+          DESTINATION_DIR: ${{ runner.temp }}
+          OPENDAQ_VERSION: ${{ steps.compose-framework-filename.version }}
+          OPENDAQ_FILENAME: ${{ steps.compose-framework-filename.filename }}
+        run: |
+          DESTINATION_DIR="$(echo "$DESTINATION_DIR" | sed 's|\\|/|g')"
+          gh release download "${OPENDAQ_VERSION}" --pattern "${OPENDAQ_FILENAME}" --dir "${DESTINATION_DIR}" --repo openDAQ/openDAQ
 
       - name: Install openDAQ framework package
         uses: ./.github/actions/framework-install
         with:
-          opendaq-framework-package-filename: ${{ steps.opendaq-framework.outputs.artefact }}
+          opendaq-framework-package-filename: ${{ steps.compose-framework-filename.outputs.filename }}
 
       - name: Configure simple device module with CMake
         run: cmake -B build/output -S . -G "${{ matrix.generator }}" -DEXAMPLE_MODULE_ENABLE_TESTS=ON -DCMAKE_BUILD_TYPE=Release
