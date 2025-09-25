@@ -27,13 +27,19 @@ env:
 
 jobs:
   build-and-test:
+    permissions:
+      contents: read
+      actions: read
+
+    env:
+      GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
     
     strategy:
       matrix:
         include:
           - os: ubuntu-latest
             generator: Ninja
-            platform-alias: "ubuntu22.04-x86_64"
+            platform-alias: "ubuntu20.04-x86_64"
 
           - os: windows-latest
             generator: "Visual Studio 17 2022"
@@ -62,22 +68,48 @@ jobs:
       #     aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       #     aws_region: ${{ secrets.AWS_REGION }}
 
+      - name: Actions temp
+        shell: bash
+        run: |
+          mkdir actions-temp
+
+      # - name: Checkout actions
+      #   uses: actions/checkout@v4
+      #   with:
+      #     repository: openDAQ/actions
+      #     ref: action-framework-download-release
+      #     path: ./actions-temp
+      #     token: ${{ secrets.PAT_TOKEN }}
+
       - name: Compose framework filename
         id: compose-framework-filename
-        uses: openDAQ/actions/framework-compose-filename@action-framework-compose-filename
+        uses: openDAQ/actions/framework-compose-filename@action-framework-download-release
+        # uses: ./actions-temp/framework-compose-filename
         with:
           platform: ${{ matrix.platform-alias }}
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.PAT_TOKEN }}
 
-      - name: Download openDAQ framework
-        shell: bash
-        env:
-          DESTINATION_DIR: ${{ runner.temp }}
-          OPENDAQ_VERSION: ${{ steps.compose-framework-filename.version }}
-          OPENDAQ_FILENAME: ${{ steps.compose-framework-filename.filename }}
-        run: |
-          DESTINATION_DIR="$(echo "$DESTINATION_DIR" | sed 's|\\|/|g')"
-          gh release download "${OPENDAQ_VERSION}" --pattern "${OPENDAQ_FILENAME}" --dir "${DESTINATION_DIR}" --repo openDAQ/openDAQ
+      - name: Download framework filename
+        id: download-framework-filename
+        uses: openDAQ/actions/framework-download-release@action-framework-download-release
+        # uses: ./actions-temp/framework-download-release
+        with:
+          artifact: ${{ steps.compose-framework-filename.outputs.filename }}
+          version: ${{ steps.compose-framework-filename.outputs.version }}
+          token: ${{ secrets.PAT_TOKEN }}
+
+      #- name: Download openDAQ framework
+      #  shell: bash
+      #  env:
+      #    DESTINATION_DIR: ${{ runner.temp }}
+      #    OPENDAQ_VERSION: ${{ steps.compose-framework-filename.outputs.version }}
+      #    OPENDAQ_FILENAME: ${{ steps.compose-framework-filename.outputs.filename }}
+      #  run: |
+      #    DESTINATION_DIR="$(echo "$DESTINATION_DIR" | sed 's|\\|/|g')"
+      #    echo "$DESTINATION_DIR"
+      #    echo "$OPENDAQ_FILENAME"
+      #    echo "$OPENDAQ_VERSION"
+      #    gh release download "${OPENDAQ_VERSION}" --pattern "${OPENDAQ_FILENAME}" --dir "${DESTINATION_DIR}" --repo openDAQ/openDAQ
 
       - name: Install openDAQ framework package
         uses: ./.github/actions/framework-install
