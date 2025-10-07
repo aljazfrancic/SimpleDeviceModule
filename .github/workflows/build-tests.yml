@@ -63,11 +63,19 @@ jobs:
           repository: openDAQ/SimpleDeviceModule
           ref: ${{ inputs.branch }}
 
+      # - name: Download openDAQ framework package
+      #   uses: ./.github/actions/opendaq-github-download-artifact
+      #   with:
+      #     opendaq-artifact-run-id: ${{ inputs.artifact-run-id }}
+      #     opendaq-artifact-name: ${{ inputs.artifact-name }}
+
       - name: Download openDAQ framework package
-        uses: ./.github/actions/opendaq-github-download-artifact
+        id: download
+        uses: openDAQ/actions/framework-download-artifact@action-opendaq-version-parse
         with:
-          opendaq-artifact-run-id: ${{ inputs.artifact-run-id }}
-          opendaq-artifact-name: ${{ inputs.artifact-name }}
+          run-id: ${{ inputs.artifact-run-id }}
+          artifact-name: ${{ inputs.artifact-name  }}
+          artifact-filename: ${{ inputs.file-name  }}
 
       - name: Install openDAQ framework package
         uses: ./.github/actions/framework-install
