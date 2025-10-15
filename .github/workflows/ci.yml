@@ -59,62 +59,41 @@ jobs:
         with:
           opendaq-framework-release-version: ${{ github.event.inputs.opendaq-framework-version || 'latest' }}
 
-      # - name: Download openDAQ framework
-      #   uses: ./.github/actions/framework-download
-      #   with:
-      #     src-opendaq-framework-dev: ${{ steps.opendaq-framework.outputs.uri }}
-      #     dst-opendaq-framework-dev: ${{ runner.temp }}/${{ steps.opendaq-framework.outputs.artefact }}
-      #     aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      #     aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      #     aws_region: ${{ secrets.AWS_REGION }}
-
       - name: Actions temp
         shell: bash
         run: |
           mkdir actions-temp
 
-      # - name: Checkout actions
-      #   uses: actions/checkout@v4
-      #   with:
-      #     repository: openDAQ/actions
-      #     ref: action-framework-download-release
-      #     path: ./actions-temp
-      #     token: ${{ secrets.PAT_TOKEN }}
-
       - name: Compose framework filename
         id: compose-framework-filename
-        uses: openDAQ/actions/framework-compose-filename@action-framework-download-release
-        # uses: ./actions-temp/framework-compose-filename
+        uses: openDAQ/actions/framework-compose-filename@jira/TBBAS-2680-opendaq-gh-actions-github-api-wrapper-unit-tests
         with:
           platform: ${{ matrix.platform-alias }}
           token: ${{ secrets.PAT_TOKEN }}
 
       - name: Download framework filename
         id: download-framework-filename
-        uses: openDAQ/actions/framework-download-release@action-framework-download-release
-        # uses: ./actions-temp/framework-download-release
+        uses: openDAQ/actions/framework-download-release@jira/TBBAS-2680-opendaq-gh-actions-github-api-wrapper-unit-tests
         with:
-          artifact: ${{ steps.compose-framework-filename.outputs.filename }}
-          version: ${{ steps.compose-framework-filename.outputs.version }}
+          platform: ${{ matrix.platform-alias }}
           token: ${{ secrets.PAT_TOKEN }}
 
-      #- name: Download openDAQ framework
-      #  shell: bash
-      #  env:
-      #    DESTINATION_DIR: ${{ runner.temp }}
-      #    OPENDAQ_VERSION: ${{ steps.compose-framework-filename.outputs.version }}
-      #    OPENDAQ_FILENAME: ${{ steps.compose-framework-filename.outputs.filename }}
-      #  run: |
-      #    DESTINATION_DIR="$(echo "$DESTINATION_DIR" | sed 's|\\|/|g')"
-      #    echo "$DESTINATION_DIR"
-      #    echo "$OPENDAQ_FILENAME"
-      #    echo "$OPENDAQ_VERSION"
-      #    gh release download "${OPENDAQ_VERSION}" --pattern "${OPENDAQ_FILENAME}" --dir "${DESTINATION_DIR}" --repo openDAQ/openDAQ
+      - name: Normalize downloaded asset
+        id: normalize-path
+        shell: bash
+        run: |
+          asset=${{ steps.download-framework-filename.outputs.asset }}
+          # Normalize output-dir path for cross-platform compatibility
+          if command -v cygpath >/dev/null 2>&1; then
+              asset="$(cygpath -w "$asset")"
+              echo "Normalized path (Windows): $asset"
+          fi
+          echo "asset=$asset" >> $GITHUB_OUTPUT
 
       - name: Install openDAQ framework package
-        uses: ./.github/actions/framework-install
+        uses: openDAQ/actions/framework-install@jira/TBBAS-2680-opendaq-gh-actions-github-api-wrapper-unit-tests
         with:
-          opendaq-framework-package-filename: ${{ steps.compose-framework-filename.outputs.filename }}
+          framework-filename: ${{ steps.normalize-path.outputs.asset }}
 
       - name: Configure simple device module with CMake
         run: cmake -B build/output -S . -G "${{ matrix.generator }}" -DEXAMPLE_MODULE_ENABLE_TESTS=ON -DCMAKE_BUILD_TYPE=Release
