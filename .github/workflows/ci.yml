@@ -1,0 +1,60 @@
+name: Build and Test simple device module with latest openDAQ release 
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+env:
+  GH_TOKEN: ${{ github.token }}
+
+jobs:
+  test-asset:
+    permissions:
+      contents: read
+      actions: read
+
+    env:
+      GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
+    
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform-alias: "ubuntu20.04-x86_64"
+          - os: windows-latest
+            platform-alias: "win64"
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout simple device module repo
+        uses: actions/checkout@v4
+
+      - name: Download openDAQ framework asset
+        id: download-framework-filename
+        uses: openDAQ/actions/framework-download-release@jira/TBBAS-2680-opendaq-gh-actions-github-api-wrapper-unit-tests
+        with:
+          platform: ${{ matrix.platform-alias }}
+          github-token: ${{ secrets.PAT_TOKEN }}
+
+      - name: Normalize downloaded asset path
+        id: normalize-framework-filename
+        shell: bash
+        run: |
+          asset=${{ steps.download-framework-filename.outputs.asset }}
+          # Normalize output-dir path for cross-platform compatibility
+          if command -v cygpath >/dev/null 2>&1; then
+              asset="$(cygpath -w "$asset")"
+              echo "Normalized path (Windows): $asset"
+          fi
+          echo "asset=$asset" >> $GITHUB_OUTPUT
+
+      - name: Install openDAQ framework asset
+        uses: openDAQ/actions/framework-install@jira/TBBAS-2680-opendaq-gh-actions-github-api-wrapper-unit-tests
+        with:
+          framework-filename: ${{ steps.normalize-framework-filename.outputs.asset }}
+
+      - name: Build and test simple device module
+        uses: ./.github/actions/module-build-test
